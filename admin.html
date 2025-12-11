@@ -5,24 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - G&G Tours</title>
     <link rel="stylesheet" href="styles.css">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
     <style>
-        body { background-color: #f4f7f6; }
+        body { background-color: #f4f7f6; font-family: sans-serif; }
         .admin-container { max-width: 900px; margin: 50px auto; padding: 30px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .screen { display: none; }
         .visible { display: block; }
         
         .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--dark-green); }
-        .form-control { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        .form-control { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
         
-        .tour-list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #fff; border: 1px solid #eee; margin-bottom: 10px; border-radius: 8px; }
+        /* Tour List Styling */
+        .tour-list-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 15px; 
+            background: #fff; 
+            border: 1px solid #eee; 
+            margin-bottom: 10px; 
+            border-radius: 8px; 
+            transition: all 0.2s;
+        }
+        .tour-list-item:hover { background-color: #f9f9f9; border-color: #ccc; }
+        .tour-info strong { font-size: 1.1em; color: #004d40; }
+        
+        .btn { background-color: #004d40; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+        .btn:hover { opacity: 0.9; }
         .btn-delete { background-color: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+        .btn-delete:hover { background-color: #cc0000; }
         
-        #loader { display:none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.9); z-index:999; text-align: center; padding-top: 20%; color: var(--primary-green); font-size: 1.5rem;}
+        #loader { display:none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.9); z-index:999; text-align: center; padding-top: 20%; color: #004d40; font-size: 1.5rem; font-weight: bold;}
     </style>
 </head>
 <body>
@@ -32,7 +50,7 @@
 <div class="admin-container">
     <div id="login-screen" class="screen visible">
         <div style="text-align: center; margin-bottom: 20px;">
-            <img src="gng_logo_bgremove.png" alt="Logo" style="height: 60px;">
+            <img src="gng_logo_bgremove.png" alt="Logo" style="height: 60px; object-fit: contain;">
             <h2>Admin Login</h2>
         </div>
         <form id="loginForm">
@@ -55,7 +73,7 @@
         </div>
 
         <div style="background: #f8fcf8; padding: 25px; border-radius: 10px; border: 1px solid #e0e0e0; margin-bottom: 40px;">
-            <h3 style="margin-top:0; color: var(--primary-green);">Add New Tour</h3>
+            <h3 style="margin-top:0; color: #004d40;">Add New Tour</h3>
             <form id="addTourForm">
                 <div class="form-group">
                     <label>Select Country</label>
@@ -75,7 +93,7 @@
                         <option value="cotedivoire">Côte d'Ivoire</option>
                         <option value="democraticrepublicofthecongo">Democratic Republic of the Congo</option>
                         <option value="djibouti">Djibouti</option>
-                        <option value="dubai">Dubai (Middle East)</option>
+                        <option value="dubai">Dubai</option>
                         <option value="egypt">Egypt</option>
                         <option value="equatorialguinea">Equatorial Guinea</option>
                         <option value="eritrea">Eritrea</option>
@@ -150,16 +168,70 @@
             </form>
         </div>
 
-        <h3>Existing Tours</h3>
+        <h3 style="border-bottom: 2px solid #004d40; padding-bottom: 10px; margin-bottom: 20px;">Existing Tours</h3>
         <div class="form-group">
             <label>Filter by Country:</label>
-            <select id="filterCountry" class="form-control" onchange="loadAdminTours()">
-               <option value="ghana">Ghana</option>
-               <option value="togo">Togo</option>
-               <option value="nigeria">Nigeria</option>
-               </select>
+            <select id="filterCountry" class="form-control">
+                <option value="algeria">Algeria</option>
+                <option value="angola">Angola</option>
+                <option value="benin">Benin</option>
+                <option value="botswana">Botswana</option>
+                <option value="burkinafaso">Burkina Faso</option>
+                <option value="burundi">Burundi</option>
+                <option value="cameroon">Cameroon</option>
+                <option value="capeverde">Cape Verde</option>
+                <option value="centralafricanrepublic">Central African Republic</option>
+                <option value="chad">Chad</option>
+                <option value="comoros">Comoros</option>
+                <option value="cotedivoire">Côte d'Ivoire</option>
+                <option value="democraticrepublicofthecongo">Democratic Republic of the Congo</option>
+                <option value="djibouti">Djibouti</option>
+                <option value="dubai">Dubai</option>
+                <option value="egypt">Egypt</option>
+                <option value="equatorialguinea">Equatorial Guinea</option>
+                <option value="eritrea">Eritrea</option>
+                <option value="eswatini">Eswatini</option>
+                <option value="ethiopia">Ethiopia</option>
+                <option value="gabon">Gabon</option>
+                <option value="gambia">Gambia</option>
+                <option value="ghana" selected>Ghana</option>
+                <option value="guinea">Guinea</option>
+                <option value="guineabissau">Guinea-Bissau</option>
+                <option value="kenya">Kenya</option>
+                <option value="lesotho">Lesotho</option>
+                <option value="liberia">Liberia</option>
+                <option value="libya">Libya</option>
+                <option value="madagascar">Madagascar</option>
+                <option value="malawi">Malawi</option>
+                <option value="mali">Mali</option>
+                <option value="mauritania">Mauritania</option>
+                <option value="mauritius">Mauritius</option>
+                <option value="morocco">Morocco</option>
+                <option value="mozambique">Mozambique</option>
+                <option value="namibia">Namibia</option>
+                <option value="niger">Niger</option>
+                <option value="nigeria">Nigeria</option>
+                <option value="republicofthecongo">Republic of the Congo</option>
+                <option value="rwanda">Rwanda</option>
+                <option value="saotomeandprincipe">Sao Tome and Principe</option>
+                <option value="senegal">Senegal</option>
+                <option value="seychelles">Seychelles</option>
+                <option value="sierraleone">Sierra Leone</option>
+                <option value="somalia">Somalia</option>
+                <option value="southafrica">South Africa</option>
+                <option value="southsudan">South Sudan</option>
+                <option value="sudan">Sudan</option>
+                <option value="tanzania">Tanzania</option>
+                <option value="togo">Togo</option>
+                <option value="tunisia">Tunisia</option>
+                <option value="uganda">Uganda</option>
+                <option value="zambia">Zambia</option>
+                <option value="zimbabwe">Zimbabwe</option>
+            </select>
         </div>
-        <div id="adminTourList"></div>
+        
+        <div id="adminTourList">
+            </div>
     </div>
 </div>
 
