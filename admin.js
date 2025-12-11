@@ -1,6 +1,9 @@
 // G&G Admin Logic
 
-// 1. Check Login State
+// 1. GLOBAL VARIABLES
+let currentUnsubscribe = null; // To store the active real-time listener
+
+// 2. CHECK LOGIN STATE
 auth.onAuthStateChanged(user => {
     const loginScreen = document.getElementById('login-screen');
     const dashboard = document.getElementById('dashboard-screen');
@@ -8,16 +11,23 @@ auth.onAuthStateChanged(user => {
     if (user) {
         loginScreen.classList.remove('visible');
         dashboard.classList.add('visible');
-        // Load initial data (default to Ghana)
-        document.getElementById('filterCountry').value = 'ghana';
-        loadAdminTours();
+        
+        // Load initial data (default to Ghana or first option)
+        const filterDropdown = document.getElementById('filterCountry');
+        if (filterDropdown) {
+            filterDropdown.value = 'ghana'; 
+            loadAdminTours(); // Start the real-time listener
+        }
     } else {
         dashboard.classList.remove('visible');
         loginScreen.classList.add('visible');
+        
+        // Stop listening to database if logged out
+        if (currentUnsubscribe) currentUnsubscribe();
     }
 });
 
-// 2. Login Handler
+// 3. LOGIN HANDLER
 document.getElementById('loginForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const email = document.getElementById('email').value;
@@ -27,12 +37,12 @@ document.getElementById('loginForm').addEventListener('submit', (e) => {
         .catch(error => alert("Login Failed: " + error.message));
 });
 
-// 3. Logout Handler
-function logout() {
+// 4. LOGOUT HANDLER
+window.logout = function() {
     auth.signOut();
 }
 
-// 4. Add Tour Handler
+// 5. ADD TOUR HANDLER
 document.getElementById('addTourForm').addEventListener('submit', (e) => {
     e.preventDefault();
     document.getElementById('loader').style.display = 'block';
@@ -52,10 +62,6 @@ document.getElementById('addTourForm').addEventListener('submit', (e) => {
         .then(() => {
             alert("Tour published successfully!");
             document.getElementById('addTourForm').reset();
-            // If the filter matches the added tour, refresh list
-            if(document.getElementById('filterCountry').value === newTour.country) {
-                loadAdminTours();
-            }
             document.getElementById('loader').style.display = 'none';
         })
         .catch(err => {
@@ -64,15 +70,30 @@ document.getElementById('addTourForm').addEventListener('submit', (e) => {
         });
 });
 
-// 5. Load Tours for Admin List
+// 6. EVENT LISTENER FOR COUNTRY FILTER
+const filterDropdown = document.getElementById('filterCountry');
+if (filterDropdown) {
+    filterDropdown.addEventListener('change', loadAdminTours);
+}
+
+// 7. REAL-TIME LOAD TOURS (UPDATED)
 function loadAdminTours() {
     const country = document.getElementById('filterCountry').value;
     const list = document.getElementById('adminTourList');
-    list.innerHTML = '<p style="text-align:center; padding:20px;">Loading...</p>';
+    
+    // Unsubscribe from previous listener to prevent duplicates
+    if (currentUnsubscribe) {
+        currentUnsubscribe();
+    }
 
-    db.collection("tours").where("country", "==", country).get()
-        .then((querySnapshot) => {
-            list.innerHTML = '';
+    list.innerHTML = '<p style="text-align:center; padding:20px;">Loading real-time data...</p>';
+
+    // Start new listener (Removed orderBy to avoid index errors)
+    currentUnsubscribe = db.collection("tours")
+        .where("country", "==", country)
+        .onSnapshot((querySnapshot) => {
+            list.innerHTML = ''; 
+            
             if(querySnapshot.empty) {
                 list.innerHTML = '<p style="text-align:center; padding:20px;">No tours found for this country.</p>';
                 return;
@@ -81,27 +102,35 @@ function loadAdminTours() {
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
                 list.innerHTML += `
-                    <div class="tour-list-item">
+                    <div class="tour-list-item" id="item-${doc.id}">
                         <div class="tour-info">
                             <strong>${data.title}</strong><br>
                             <small>${data.location} | ${data.price}</small>
                         </div>
-                        <button class="btn-delete" onclick="deleteTour('${doc.id}')">Delete</button>
+                        <button class="btn-delete" style="background:red; color:white; padding:5px 10px; border:none; cursor:pointer;" onclick="deleteTour('${doc.id}')">Delete</button>
                     </div>
                 `;
             });
+        }, (error) => {
+            console.error("Real-time error:", error);
+            list.innerHTML = `<p style="color:red; text-align:center;">Error: ${error.message}</p>`;
         });
 }
 
-// 6. Delete Tour Handler
-function deleteTour(id) {
+// 8. DELETE TOUR HANDLER (GLOBAL)
+window.deleteTour = function(id) {
     if(confirm("Are you sure you want to delete this tour? This cannot be undone.")) {
+        // Optimistic UI update: Fade it out immediately
+        const item = document.getElementById(`item-${id}`);
+        if(item) item.style.opacity = '0.5';
+
         db.collection("tours").doc(id).delete()
             .then(() => {
-                loadAdminTours();
+                console.log("Document successfully deleted!");
             })
             .catch(error => {
-                alert("Error removing document: ", error);
+                alert("Error removing document: " + error.message);
+                if(item) item.style.opacity = '1';
             });
     }
 }
